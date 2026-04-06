@@ -1,0 +1,14 @@
+{
+  "appId": "com.skillconnect.app",
+  "appName": "SkillConnect",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "cleartext": true
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}
