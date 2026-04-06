@@ -495,7 +495,7 @@ function renderRegister(app, state = null) {
 
                 <div class="input-wrap" id="wrap-password">
                     <label>Password</label>
-                    <input type="password" id="reg-password" class="input-field" placeholder="Min 8 characters">
+                    <input type="password" id="reg-password" class="input-field" placeholder="Min 6 chars, uppercase &amp; number">
                     <button type="button" class="password-toggle" data-target="reg-password" aria-label="Toggle password visibility">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" class="eye-bg"></path>
@@ -693,7 +693,9 @@ function renderRegister(app, state = null) {
         else if (data.phone.replace(/\D/g,'').length !== 10) setError('phone', 'Must be 10 digits');
 
         if (!data.password) setError('password', 'Required');
-        else if (data.password.length < 8) setError('password', 'Min 8 characters');
+        else if (data.password.length < 6) setError('password', 'Minimum 6 characters required');
+        else if (!/[A-Z]/.test(data.password)) setError('password', 'Must contain at least one uppercase letter');
+        else if (!/[0-9]/.test(data.password)) setError('password', 'Must contain at least one number');
 
         if (!data.confirmPassword) setError('confirmPassword', 'Required');
         else if (data.password !== data.confirmPassword) setError('confirmPassword', 'Passwords do not match');
@@ -742,8 +744,17 @@ function renderRegister(app, state = null) {
             submitBtn.disabled = false;
             submitBtn.classList.remove('loading');
             document.getElementById('reg-btn-text').textContent = 'Register';
+
+            // Try to show specific validation errors from backend
+            let errorMsg = err.message || 'Connection failed. Please try again.';
+            try {
+                const parsed = typeof err.data === 'object' ? err.data : JSON.parse(err.message);
+                if (parsed?.errors?.length) {
+                    errorMsg = parsed.errors.map(e => e.message).join(' • ');
+                }
+            } catch (_) {}
             
-            errBanner.textContent = err.message || 'Connection failed. Check your network and try again.';
+            errBanner.textContent = errorMsg;
             errBanner.classList.add('active');
         }
     });

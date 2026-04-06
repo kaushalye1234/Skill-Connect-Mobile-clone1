@@ -7,18 +7,14 @@ const router = express.Router();
 
 // POST /api/auth/register
 router.post('/register', authValidation.register, validate, async (req, res) => {
-    const mongoose = require('mongoose');
     const logger = require('../middleware/logger');
-    const { startSession, commitTransaction, abortTransaction } = require('../utils/transaction');
     
-    const session = await startSession(mongoose);
     try {
-        const { firstName, lastName, email, password, phone, role } = req.body;
+        const { firstName, lastName, email, password, phone, role, district, city, skills, hourlyRate, experience, companyName } = req.body;
 
         // Check if user already exists
-        const existingUser = await User.findOne({ email }).session(session);
+        const existingUser = await User.findOne({ email });
         if (existingUser) {
-            await abortTransaction(session);
             return res.status(400).json({ 
                 status: 'error',
                 message: 'Email already registered' 
@@ -32,19 +28,24 @@ router.post('/register', authValidation.register, validate, async (req, res) => 
             email,
             passwordHash: password,
             phone,
-            role: role || 'customer'
+            role: role || 'customer',
+            district,
+            city,
+            skills,
+            hourlyRate,
+            experience,
+            companyName
         });
 
-        await user.save({ session });
+        await user.save();
 
         // Generate JWT token
         const token = jwt.sign(
             { userId: user._id, role: user.role },
             process.env.JWT_SECRET,
-            { expiresIn: '1h' }
+            { expiresIn: '7d' }
         );
 
-        await commitTransaction(session);
         logger.info(`User registered: ${email}`);
 
         res.status(201).json({
@@ -58,11 +59,10 @@ router.post('/register', authValidation.register, validate, async (req, res) => 
             }
         });
     } catch (error) {
-        await abortTransaction(session);
         logger.error(`Registration error: ${error.message}`);
         res.status(500).json({ 
             status: 'error',
-            message: 'Registration failed' 
+            message: 'Registration failed: ' + error.message
         });
     }
 });

@@ -34,7 +34,10 @@ const api = {
                     localStorage.removeItem('user');
                     window.location.reload();
                 }
-                throw new Error(data.message || 'Request failed');
+                // Attach full error data so UI can show specific messages
+                const err = new Error(data.message || 'Request failed');
+                err.data = data;
+                throw err;
             }
 
             return data;
