@@ -100,6 +100,19 @@ app.get('/api/health', async (req, res) => {
     }
 });
 
+// Root endpoint for quick availability checks
+app.get('/', (req, res) => {
+    res.json({
+        status: 'ok',
+        message: 'SkillConnect Mobile API running',
+        endpoints: {
+            health: '/api/health',
+            docs: '/api/docs',
+            apiBase: '/api/v1'
+        }
+    });
+});
+
 // 404 handler
 app.use((req, res) => {
     logger.warn(`404 Not Found: ${req.method} ${req.url}`);
