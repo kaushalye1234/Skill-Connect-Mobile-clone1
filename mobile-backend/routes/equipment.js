@@ -4,6 +4,7 @@ const auth = require('../middleware/auth');
 const router = express.Router();
 
 const sanitizeEquipmentData = (data = {}) => {
+    // Accept both legacy keys and current API keys.
     const sanitized = {};
 
     const equipmentName = data.equipmentName ?? data.name;
@@ -14,20 +15,20 @@ const sanitizeEquipmentData = (data = {}) => {
     const depositAmount = depositAmountRaw !== undefined ? Number(depositAmountRaw) : undefined;
     const quantityAvailable = data.quantityAvailable !== undefined ? Number(data.quantityAvailable) : undefined;
     const quantityTotal = data.quantityTotal !== undefined ? Number(data.quantityTotal) : undefined;
-    const conditionInput = String(data.equipmentCondition ?? data.condition ?? 'good').trim().toLowerCase();
+    const conditionInput = String(data.equipmentCondition ?? data.condition ?? "good").trim().toLowerCase();
     const conditionAliases = {
-        new: 'new',
-        excellent: 'excellent',
-        exc: 'excellent',
-        good: 'good',
-        goo: 'good',
-        fair: 'fair',
-        fai: 'fair'
+        new: "new",
+        excellent: "excellent",
+        exc: "excellent",
+        good: "good",
+        goo: "good",
+        fair: "fair",
+        fai: "fair"
     };
-    const equipmentCondition = conditionAliases[conditionInput] || 'good';
+    const equipmentCondition = conditionAliases[conditionInput] || "good";
 
     if (equipmentName !== undefined) {
-        // Persist both key variants so either frontend payload style works.
+        // Save both legacy and current key names so either schema variant can persist correctly.
         sanitized.equipmentName = equipmentName;
         sanitized.name = equipmentName;
     }

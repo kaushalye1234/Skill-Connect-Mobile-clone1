@@ -2,9 +2,8 @@
 // SkillConnect Mobile – API  //
 // ========================= //
 
-// NOTE: For Android Emulator, use 10.0.2.2 to reach your computer's server.
-// If testing on a physical device or web browser, change this accordingly.
-const API_BASE = 'http://10.0.2.2:5000/api';
+// Use deployed backend for emulator/device/web API calls.
+const API_BASE = 'https://skill-connect-mobile-backup-api.onrender.com/api';
 
 function toNumberOrUndefined(value) {
     if (value === undefined || value === null || value === '') return undefined;

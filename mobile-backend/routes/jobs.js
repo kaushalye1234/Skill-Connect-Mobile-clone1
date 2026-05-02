@@ -85,9 +85,11 @@ router.get('/:id', auth, async (req, res) => {
             .populate('customer', 'firstName lastName email phone')
             .populate('applications.worker', 'firstName lastName email skills');
         if (!job) return res.status(404).json({ status: 'error', message: 'Job not found' });
-
+        
+        // Increment views without triggering full document validation.
+        // Some legacy jobs may have now-invalid historical fields (e.g. past preferredStartDate).
+        await Job.updateOne({ _id: job._id }, { $inc: { viewsCount: 1 } });
         job.viewsCount += 1;
-        await job.save();
 
         res.json({ status: 'success', data: job });
     } catch (error) {
