@@ -6,6 +6,66 @@
 // If testing on a physical device or web browser, change this accordingly.
 const API_BASE = 'http://10.0.2.2:5000/api';
 
+function toNumberOrUndefined(value) {
+    if (value === undefined || value === null || value === '') return undefined;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function normalizeCondition(value) {
+    const raw = String(value || '').trim().toLowerCase();
+    const aliases = {
+        new: 'new',
+        excellent: 'excellent',
+        exc: 'excellent',
+        good: 'good',
+        goo: 'good',
+        fair: 'fair',
+        fai: 'fair'
+    };
+    return aliases[raw] || undefined;
+}
+
+function equipmentPayload(payload = {}) {
+    const equipmentName = payload.equipmentName ?? payload.name;
+    const equipmentDescription = payload.equipmentDescription ?? payload.description;
+    const dailyRate = toNumberOrUndefined(payload.rentalPricePerDay ?? payload.dailyRate ?? payload.rentalPrice);
+    const deposit = toNumberOrUndefined(payload.depositAmount ?? payload.deposit);
+    const quantityAvailable = toNumberOrUndefined(payload.quantityAvailable);
+    const quantityTotal = toNumberOrUndefined(payload.quantityTotal);
+    const condition = normalizeCondition(payload.equipmentCondition ?? payload.condition);
+
+    const normalized = {};
+    if (equipmentName !== undefined) {
+        normalized.equipmentName = equipmentName;
+        normalized.name = equipmentName;
+    }
+    if (equipmentDescription !== undefined) {
+        normalized.equipmentDescription = equipmentDescription;
+        normalized.description = equipmentDescription;
+    }
+    if (payload.category !== undefined) normalized.category = payload.category;
+    if (condition !== undefined) {
+        normalized.equipmentCondition = condition;
+        normalized.condition = condition;
+    }
+    if (dailyRate !== undefined) {
+        normalized.rentalPricePerDay = dailyRate;
+        normalized.dailyRate = dailyRate;
+        normalized.rentalPrice = dailyRate;
+    }
+    if (deposit !== undefined) {
+        normalized.depositAmount = deposit;
+        normalized.deposit = deposit;
+    }
+    if (quantityAvailable !== undefined) normalized.quantityAvailable = quantityAvailable;
+    if (quantityTotal !== undefined) normalized.quantityTotal = quantityTotal;
+    if (payload.isAvailable !== undefined) normalized.isAvailable = payload.isAvailable;
+    if (payload.location !== undefined) normalized.location = payload.location;
+    if (payload.imagePath !== undefined) normalized.imagePath = payload.imagePath;
+    return normalized;
+}
+
 const api = {
     // Get stored token
     getToken() {
@@ -122,7 +182,32 @@ const api = {
     },
 
     async addEquipment(data) {
-        return this.request('/equipment', { method: 'POST', body: JSON.stringify(data) });
+        return this.request('/equipment', {
+            method: 'POST',
+            body: JSON.stringify(equipmentPayload(data))
+        });
+    },
+
+    async createEquipment(data) {
+        return this.addEquipment(data);
+    },
+
+    async updateEquipment(id, data) {
+        return this.request(`/equipment/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(equipmentPayload(data))
+        });
+    },
+
+    async updateEquipmentStatus(id, data) {
+        return this.request(`/equipment/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ isAvailable: !!data?.isAvailable })
+        });
+    },
+
+    async deleteEquipment(id) {
+        return this.request(`/equipment/${id}`, { method: 'DELETE' });
     },
 
     // Reviews

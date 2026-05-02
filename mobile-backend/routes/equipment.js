@@ -3,12 +3,62 @@ const Equipment = require('../models/Equipment');
 const auth = require('../middleware/auth');
 const router = express.Router();
 
-const sanitizeEquipmentData = (data) => {
-    const allowed = ['name', 'description', 'category', 'dailyRate', 'isAvailable', 'location'];
+const sanitizeEquipmentData = (data = {}) => {
     const sanitized = {};
-    allowed.forEach(field => {
-        if (data[field] !== undefined) sanitized[field] = data[field];
-    });
+
+    const equipmentName = data.equipmentName ?? data.name;
+    const equipmentDescription = data.equipmentDescription ?? data.description;
+    const rentalPricePerDayRaw = data.rentalPricePerDay ?? data.dailyRate ?? data.rentalPrice;
+    const depositAmountRaw = data.depositAmount ?? data.deposit;
+    const rentalPricePerDay = rentalPricePerDayRaw !== undefined ? Number(rentalPricePerDayRaw) : undefined;
+    const depositAmount = depositAmountRaw !== undefined ? Number(depositAmountRaw) : undefined;
+    const quantityAvailable = data.quantityAvailable !== undefined ? Number(data.quantityAvailable) : undefined;
+    const quantityTotal = data.quantityTotal !== undefined ? Number(data.quantityTotal) : undefined;
+    const conditionInput = String(data.equipmentCondition ?? data.condition ?? 'good').trim().toLowerCase();
+    const conditionAliases = {
+        new: 'new',
+        excellent: 'excellent',
+        exc: 'excellent',
+        good: 'good',
+        goo: 'good',
+        fair: 'fair',
+        fai: 'fair'
+    };
+    const equipmentCondition = conditionAliases[conditionInput] || 'good';
+
+    if (equipmentName !== undefined) {
+        // Persist both key variants so either frontend payload style works.
+        sanitized.equipmentName = equipmentName;
+        sanitized.name = equipmentName;
+    }
+    if (equipmentDescription !== undefined) {
+        sanitized.equipmentDescription = equipmentDescription;
+        sanitized.description = equipmentDescription;
+    }
+    if (data.category !== undefined) sanitized.category = data.category;
+    if (equipmentCondition !== undefined) {
+        sanitized.equipmentCondition = equipmentCondition;
+        sanitized.condition = equipmentCondition;
+    }
+    if (rentalPricePerDay !== undefined && Number.isFinite(rentalPricePerDay)) {
+        sanitized.rentalPricePerDay = rentalPricePerDay;
+        sanitized.dailyRate = rentalPricePerDay;
+        sanitized.rentalPrice = rentalPricePerDay;
+    }
+    if (depositAmount !== undefined && Number.isFinite(depositAmount)) {
+        sanitized.depositAmount = depositAmount;
+        sanitized.deposit = depositAmount;
+    }
+    if (quantityAvailable !== undefined && Number.isFinite(quantityAvailable)) {
+        sanitized.quantityAvailable = quantityAvailable;
+    }
+    if (quantityTotal !== undefined && Number.isFinite(quantityTotal)) {
+        sanitized.quantityTotal = quantityTotal;
+    }
+    if (data.imagePath !== undefined) sanitized.imagePath = data.imagePath;
+    if (data.location !== undefined) sanitized.location = data.location;
+    if (data.isAvailable !== undefined) sanitized.isAvailable = data.isAvailable;
+
     return sanitized;
 };
 
@@ -76,7 +126,13 @@ router.post('/', auth, async (req, res) => {
         await equipment.save();
         res.status(201).json({ status: 'success', data: equipment });
     } catch (error) {
-        res.status(400).json({ status: 'error', message: 'Failed to add equipment' });
+        const detailMessage = error?.name === 'ValidationError'
+            ? Object.values(error.errors || {})[0]?.message
+            : '';
+        res.status(400).json({
+            status: 'error',
+            message: detailMessage || error?.message || 'Failed to add equipment'
+        });
     }
 });
 
@@ -95,7 +151,13 @@ router.put('/:id', auth, async (req, res) => {
 
         res.json({ status: 'success', data: equipment });
     } catch (error) {
-        res.status(400).json({ status: 'error', message: 'Failed to update equipment' });
+        const detailMessage = error?.name === 'ValidationError'
+            ? Object.values(error.errors || {})[0]?.message
+            : '';
+        res.status(400).json({
+            status: 'error',
+            message: detailMessage || error?.message || 'Failed to update equipment'
+        });
     }
 });
 
