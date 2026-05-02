@@ -17,6 +17,7 @@ import {
   getMyReviews,
   updateReview,
 } from "../services/apiClient";
+import { colors, layout } from "../styles/theme";
 
 const RATINGS = [1, 2, 3, 4, 5];
 
@@ -273,10 +274,10 @@ export default function ReviewsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: colors.bg,
   },
   headerWrap: {
-    paddingHorizontal: 16,
+    paddingHorizontal: layout.pagePadding,
     paddingTop: 12,
   },
   topRow: {
@@ -287,57 +288,60 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#111827",
+    color: colors.text,
   },
   refreshBtn: {
     marginLeft: "auto",
-    backgroundColor: "#cbd5e1",
+    backgroundColor: colors.surfaceLight,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 8,
   },
   refreshText: {
-    color: "#0f172a",
+    color: colors.text,
     fontWeight: "600",
   },
   list: {
-    paddingHorizontal: 16,
+    paddingHorizontal: layout.pagePadding,
     paddingBottom: 20,
     gap: 10,
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: colors.border,
     marginBottom: 10,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111827",
+    color: colors.text,
     marginBottom: 10,
   },
   itemTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#0f172a",
+    color: colors.text,
     marginBottom: 6,
   },
   label: {
-    color: "#334155",
+    color: colors.text,
     fontWeight: "600",
     marginBottom: 4,
     marginTop: 6,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surfaceLight,
+    color: colors.text,
   },
   textArea: {
     minHeight: 80,
@@ -352,19 +356,20 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceLight,
     marginRight: 8,
   },
   pillActive: {
-    backgroundColor: "#1d4ed8",
-    borderColor: "#1d4ed8",
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   pillText: {
-    color: "#1f2937",
+    color: colors.text,
     fontSize: 12,
   },
   pillTextActive: {
-    color: "#fff",
+    color: colors.primary,
   },
   optionWrap: {
     flexDirection: "row",
@@ -376,30 +381,33 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: "#e2e8f0",
+    backgroundColor: colors.surfaceLight,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
   optionActive: {
-    backgroundColor: "#1d4ed8",
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   optionText: {
-    color: "#1f2937",
+    color: colors.text,
     fontWeight: "700",
   },
   optionTextActive: {
-    color: "#fff",
+    color: colors.primary,
   },
   primaryBtn: {
     marginTop: 12,
-    backgroundColor: "#2563eb",
+    backgroundColor: colors.accent,
     borderRadius: 10,
     minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
   },
   primaryBtnText: {
-    color: "#fff",
+    color: colors.primary,
     fontWeight: "700",
   },
   cancelBtn: {
@@ -409,10 +417,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceLight,
   },
   cancelBtnText: {
-    color: "#334155",
+    color: colors.text,
     fontWeight: "600",
   },
   actionRow: {
@@ -421,29 +430,31 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   smallBtn: {
-    backgroundColor: "#dbeafe",
+    backgroundColor: colors.surfaceLight,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
   },
   deleteBtn: {
-    backgroundColor: "#fee2e2",
+    backgroundColor: "#6b1d1d",
   },
   smallBtnText: {
-    color: "#1e3a8a",
+    color: colors.text,
     fontWeight: "600",
     fontSize: 12,
   },
   meta: {
-    color: "#334155",
+    color: colors.textMuted,
     marginBottom: 4,
   },
   helper: {
-    color: "#475569",
+    color: colors.textMuted,
     marginBottom: 10,
   },
   error: {
-    color: "#dc2626",
+    color: colors.danger,
     marginBottom: 10,
   },
 });

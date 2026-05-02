@@ -4,8 +4,18 @@ import { login, register } from "../services/apiClient";
 
 const TOKEN_KEY = "sc_token";
 const USER_KEY = "sc_user";
+const STORAGE_TIMEOUT_MS = 2500;
 
 const AuthContext = createContext(null);
+
+function withTimeout(promise, timeoutMs, fallback = null) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => {
+      setTimeout(() => resolve(fallback), timeoutMs);
+    }),
+  ]);
+}
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
@@ -14,19 +24,39 @@ export function AuthProvider({ children }) {
   const [authError, setAuthError] = useState("");
 
   useEffect(() => {
+    let mounted = true;
+
     (async () => {
       try {
-        const savedToken = await AsyncStorage.getItem(TOKEN_KEY);
-        const savedUser = await AsyncStorage.getItem(USER_KEY);
+        const [savedToken, savedUser] = await Promise.all([
+          withTimeout(AsyncStorage.getItem(TOKEN_KEY), STORAGE_TIMEOUT_MS),
+          withTimeout(AsyncStorage.getItem(USER_KEY), STORAGE_TIMEOUT_MS),
+        ]);
 
-        if (savedToken) setToken(savedToken);
-        if (savedUser) setUser(JSON.parse(savedUser));
+        if (!mounted) {
+          return;
+        }
+
+        if (savedToken) {
+          setToken(savedToken);
+        }
+        if (savedUser) {
+          setUser(JSON.parse(savedUser));
+        }
       } catch (_e) {
-        setAuthError("Failed to restore session");
+        if (mounted) {
+          setAuthError("Failed to restore session");
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     })();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   async function persistSession(nextToken, nextUser) {
@@ -44,7 +74,7 @@ export function AuthProvider({ children }) {
 
   async function signUp(form) {
     setAuthError("");
-    const data = await register({
+    const payload = {
       firstName: form.firstName.trim(),
       lastName: form.lastName.trim(),
       email: form.email.trim().toLowerCase(),
@@ -53,6 +83,22 @@ export function AuthProvider({ children }) {
       role: form.role,
       district: form.district.trim(),
       city: form.city.trim(),
+    };
+
+    if (form.role === "worker") {
+      payload.skills = (form.skills || [])
+        .map((item) => String(item).trim())
+        .filter(Boolean);
+      payload.hourlyRate = form.hourlyRate ? Number(form.hourlyRate) : undefined;
+      payload.experience = form.experience?.trim() || "";
+    }
+
+    if (form.role === "supplier") {
+      payload.companyName = form.companyName?.trim() || "";
+    }
+
+    const data = await register({
+      ...payload,
     });
     await persistSession(data.token, data);
   }

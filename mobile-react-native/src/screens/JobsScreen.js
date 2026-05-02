@@ -1,96 +1,222 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Pressable,
   SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
-import { getJobs } from "../services/apiClient";
+import { getJobsWithFilters, getMyJobs } from "../services/apiClient";
+import { colors, layout } from "../styles/theme";
+
+const CATEGORIES = [
+  "all",
+  "Plumbing",
+  "Electrical",
+  "Carpentry",
+  "Painting",
+  "Masonry",
+  "Welding",
+  "Roofing",
+  "Landscaping",
+  "Cleaning",
+  "Moving",
+  "Other",
+];
+
+function formatDate(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString();
+}
+
+function normalizeId(value) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  return value._id || value.id || "";
+}
 
 export default function JobsScreen({ navigation }) {
-  const { token, user, signOut } = useAuth();
+  const { token, user } = useAuth();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [district, setDistrict] = useState("");
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [viewMode, setViewMode] = useState(user?.role === "customer" ? "mine" : "browse");
+
+  const role = user?.role || "customer";
 
   const loadJobs = useCallback(async () => {
     try {
       setError("");
       setLoading(true);
-      const list = await getJobs(token);
+
+      if (viewMode === "mine") {
+        const mine = await getMyJobs(token);
+        setJobs(mine);
+        return;
+      }
+
+      const filters = { status: "active" };
+      if (activeCategory !== "all") filters.category = activeCategory;
+      if (district.trim()) filters.district = district.trim();
+
+      const list = await getJobsWithFilters(token, filters);
       setJobs(list);
     } catch (e) {
       setError(e.message || "Failed to load jobs");
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, viewMode, activeCategory, district]);
 
   useEffect(() => {
     loadJobs();
   }, [loadJobs]);
 
+  const filteredJobs = useMemo(() => {
+    if (!search.trim()) return jobs;
+    const q = search.trim().toLowerCase();
+    return jobs.filter((job) =>
+      [job.jobTitle, job.jobDescription, job.category, job.city, job.district]
+        .join(" ")
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [jobs, search]);
+
+  function onOpenJob(job) {
+    const jobId = normalizeId(job);
+    if (!jobId) {
+      setError("Unable to open job: missing job ID");
+      return;
+    }
+    navigation.navigate("JobDetail", { jobId, job });
+  }
+
+  const canPostJob = role === "customer" || role === "admin";
+
   return (
     <SafeAreaView style={styles.container}>
       <FlatList
-        data={jobs}
-        keyExtractor={(item) => item._id}
-        contentContainerStyle={styles.list}
+        data={filteredJobs}
+        keyExtractor={(item, index) => normalizeId(item) || `job-${index}`}
+        contentContainerStyle={styles.content}
         ListHeaderComponent={
-          <ScrollView style={styles.headerWrap}>
-            <View style={styles.headerRow}>
-              <Text style={styles.title}>Welcome, {user?.name || "User"}</Text>
-              <Pressable onPress={() => navigation.navigate("Profile")}>
-                <Text style={styles.link}>Profile</Text>
+          <View>
+            <Text style={styles.title}>Jobs</Text>
+            <Text style={styles.subtitle}>Browse jobs, post requests, and track applications.</Text>
+
+            <View style={styles.topActions}>
+              <Pressable style={styles.btn} onPress={loadJobs}>
+                <Text style={styles.btnText}>Refresh</Text>
               </Pressable>
+              {role === "worker" ? (
+                <Pressable style={styles.btn} onPress={() => navigation.navigate("MyApplications")}>
+                  <Text style={styles.btnText}>My Applications</Text>
+                </Pressable>
+              ) : null}
+              {canPostJob ? (
+                <Pressable style={styles.primaryBtn} onPress={() => navigation.navigate("PostJob")}>
+                  <Text style={styles.primaryBtnText}>Post Job</Text>
+                </Pressable>
+              ) : null}
             </View>
 
-            <View style={styles.actionRow}>
-              <Pressable style={styles.secondaryButton} onPress={loadJobs}>
-                <Text style={styles.secondaryButtonText}>Refresh Jobs</Text>
-              </Pressable>
-              <Pressable style={styles.secondaryButton} onPress={signOut}>
-                <Text style={styles.secondaryButtonText}>Logout</Text>
-              </Pressable>
-            </View>
+            {(role === "customer" || role === "admin") ? (
+              <View style={styles.segmentRow}>
+                <Pressable
+                  style={[styles.segmentBtn, viewMode === "mine" && styles.segmentBtnActive]}
+                  onPress={() => setViewMode("mine")}
+                >
+                  <Text style={[styles.segmentText, viewMode === "mine" && styles.segmentTextActive]}>
+                    My Jobs
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.segmentBtn, viewMode === "browse" && styles.segmentBtnActive]}
+                  onPress={() => setViewMode("browse")}
+                >
+                  <Text style={[styles.segmentText, viewMode === "browse" && styles.segmentTextActive]}>
+                    Browse Active
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
 
-            <View style={styles.moduleGrid}>
-              <Pressable style={styles.moduleBtn} onPress={() => navigation.navigate("Bookings")}>
-                <Text style={styles.moduleTitle}>Bookings</Text>
-                <Text style={styles.moduleSub}>List + create + status actions</Text>
-              </Pressable>
-              <Pressable style={styles.moduleBtn} onPress={() => navigation.navigate("Equipment")}>
-                <Text style={styles.moduleTitle}>Equipment</Text>
-                <Text style={styles.moduleSub}>List + supplier create flow</Text>
-              </Pressable>
-              <Pressable style={styles.moduleBtn} onPress={() => navigation.navigate("Complaints")}>
-                <Text style={styles.moduleTitle}>Complaints</Text>
-                <Text style={styles.moduleSub}>List + complaint submission</Text>
-              </Pressable>
-              <Pressable style={styles.moduleBtn} onPress={() => navigation.navigate("Reviews")}>
-                <Text style={styles.moduleTitle}>Reviews</Text>
-                <Text style={styles.moduleSub}>List + review submission</Text>
-              </Pressable>
-            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Search jobs by title, category, city..."
+              placeholderTextColor={colors.textMuted}
+              value={search}
+              onChangeText={setSearch}
+            />
 
-            <Text style={styles.sectionTitle}>Active Jobs</Text>
+            {viewMode === "browse" ? (
+              <>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Filter district (optional)"
+                  placeholderTextColor={colors.textMuted}
+                  value={district}
+                  onChangeText={setDistrict}
+                  onSubmitEditing={loadJobs}
+                />
+
+                <View style={styles.categories}>
+                  {CATEGORIES.map((category) => (
+                    <Pressable
+                      key={category}
+                      style={[styles.pill, activeCategory === category && styles.pillActive]}
+                      onPress={() => setActiveCategory(category)}
+                    >
+                      <Text style={[styles.pillText, activeCategory === category && styles.pillTextActive]}>
+                        {category}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </>
+            ) : null}
+
+            {loading ? <ActivityIndicator color={colors.accent} style={{ marginTop: 6 }} /> : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
-            {loading ? <Text style={styles.helper}>Loading jobs...</Text> : null}
-          </ScrollView>
-        }
-        ListEmptyComponent={!loading ? <Text style={styles.helper}>No active jobs found.</Text> : null}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.jobTitle}>{item.jobTitle}</Text>
-            <Text style={styles.meta}>{item.category} | {item.district}</Text>
-            <Text style={styles.body} numberOfLines={3}>{item.jobDescription}</Text>
-            <Text style={styles.meta}>Budget: Rs. {item.budgetMin} - Rs. {item.budgetMax}</Text>
           </View>
-        )}
+        }
+        ListEmptyComponent={!loading ? <Text style={styles.helper}>No jobs found.</Text> : null}
+        renderItem={({ item }) => {
+          const myId = user?.userId || "";
+          const hasApplied = (item.applications || []).some(
+            (application) => normalizeId(application.worker) === myId
+          );
+
+          return (
+            <Pressable style={styles.card} onPress={() => onOpenJob(item)}>
+              <View style={styles.cardTop}>
+                <Text style={styles.jobTitle}>{item.jobTitle}</Text>
+                <Text style={styles.badge}>{item.jobStatus || "active"}</Text>
+              </View>
+              <Text style={styles.meta}>
+                {item.category} | {item.city}, {item.district}
+              </Text>
+              <Text style={styles.meta}>
+                Budget: LKR {item.budgetMin || 0} - {item.budgetMax || 0}
+              </Text>
+              <Text style={styles.meta}>Start: {formatDate(item.preferredStartDate)}</Text>
+              <Text style={styles.body} numberOfLines={2}>
+                {item.jobDescription}
+              </Text>
+              {hasApplied ? <Text style={styles.applied}>You already applied</Text> : null}
+            </Pressable>
+          );
+        }}
       />
     </SafeAreaView>
   );
@@ -99,101 +225,158 @@ export default function JobsScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: colors.bg,
   },
-  headerWrap: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
+  content: {
+    padding: layout.pagePadding,
+    paddingBottom: 26,
+    gap: 9,
   },
   title: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#0f172a",
+    color: colors.text,
+    fontSize: 24,
+    fontWeight: "800",
   },
-  link: {
-    color: "#2563eb",
-    fontWeight: "600",
-  },
-  actionRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 12,
-  },
-  secondaryButton: {
-    backgroundColor: "#e2e8f0",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  secondaryButtonText: {
-    color: "#1e293b",
-    fontWeight: "600",
-  },
-  moduleGrid: {
-    marginBottom: 14,
-  },
-  moduleBtn: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#dbeafe",
-    borderRadius: 12,
-    padding: 12,
+  subtitle: {
+    color: colors.textMuted,
     marginBottom: 8,
   },
-  moduleTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#1e3a8a",
+  topActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 8,
+    flexWrap: "wrap",
   },
-  moduleSub: {
-    color: "#334155",
-    marginTop: 4,
+  btn: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  btnText: {
+    color: colors.text,
+    fontWeight: "700",
     fontSize: 12,
   },
-  sectionTitle: {
-    fontSize: 16,
+  primaryBtn: {
+    backgroundColor: colors.accent,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  primaryBtnText: {
+    color: colors.primary,
+    fontWeight: "800",
+    fontSize: 12,
+  },
+  segmentRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 8,
+  },
+  segmentBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    backgroundColor: colors.surface,
+    paddingVertical: 9,
+    alignItems: "center",
+  },
+  segmentBtnActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  segmentText: {
+    color: colors.text,
     fontWeight: "700",
-    color: "#0f172a",
+    fontSize: 12,
+  },
+  segmentTextActive: {
+    color: colors.primary,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: colors.text,
+    backgroundColor: colors.surface,
     marginBottom: 8,
   },
-  error: {
-    color: "#dc2626",
-    marginBottom: 8,
+  categories: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 4,
   },
-  helper: {
-    color: "#475569",
-    marginBottom: 8,
+  pill: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
   },
-  list: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-    gap: 10,
+  pillActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  pillText: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  pillTextActive: {
+    color: colors.primary,
   },
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: colors.border,
+    borderRadius: layout.cardRadius,
+    padding: 14,
+    gap: 4,
+  },
+  cardTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 8,
   },
   jobTitle: {
+    color: colors.text,
     fontSize: 16,
     fontWeight: "700",
-    color: "#111827",
+    flex: 1,
+  },
+  badge: {
+    color: colors.accent,
+    textTransform: "capitalize",
+    fontWeight: "700",
+    fontSize: 12,
   },
   meta: {
-    color: "#475569",
-    marginTop: 4,
+    color: colors.textMuted,
   },
   body: {
-    color: "#334155",
+    color: colors.text,
+    marginTop: 4,
+  },
+  applied: {
+    marginTop: 4,
+    color: colors.success,
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  helper: {
+    color: colors.textMuted,
     marginTop: 8,
-    marginBottom: 6,
+  },
+  error: {
+    color: colors.danger,
+    marginTop: 8,
   },
 });

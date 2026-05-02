@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
+import { colors } from "../styles/theme";
 
 export default function LoginScreen({ navigation }) {
   const { signIn } = useAuth();
@@ -37,12 +38,14 @@ export default function LoginScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.title}>SkillConnect (React Native)</Text>
-        <Text style={styles.subtitle}>Sign in with your account</Text>
+        <Text style={styles.brand}>SkillConnect</Text>
+        <Text style={styles.title}>Welcome back</Text>
+        <Text style={styles.subtitle}>Log in to continue with jobs, bookings and equipment.</Text>
 
         <TextInput
           style={styles.input}
           placeholder="Email"
+          placeholderTextColor={colors.textMuted}
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
@@ -52,6 +55,7 @@ export default function LoginScreen({ navigation }) {
         <TextInput
           style={styles.input}
           placeholder="Password"
+          placeholderTextColor={colors.textMuted}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
@@ -60,11 +64,11 @@ export default function LoginScreen({ navigation }) {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <Pressable style={styles.button} onPress={handleLogin} disabled={submitting}>
-          {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Login</Text>}
+          {submitting ? <ActivityIndicator color={colors.primary} /> : <Text style={styles.buttonText}>Log In</Text>}
         </Pressable>
 
         <Pressable onPress={() => navigation.navigate("Register")}>
-          <Text style={styles.link}>No account? Register</Text>
+          <Text style={styles.link}>No account? Create one</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -76,49 +80,58 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     padding: 20,
-    backgroundColor: "#f5f7fb",
+    backgroundColor: colors.bg,
   },
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 16,
     padding: 20,
     gap: 12,
-    elevation: 2,
+  },
+  brand: {
+    color: colors.accent,
+    fontSize: 18,
+    fontWeight: "800",
   },
   title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#111827",
+    fontSize: 24,
+    fontWeight: "800",
+    color: colors.text,
   },
   subtitle: {
-    color: "#4b5563",
-    marginBottom: 8,
+    color: colors.textMuted,
+    marginBottom: 6,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: "#fff",
+    paddingVertical: 11,
+    color: colors.text,
+    backgroundColor: colors.surfaceLight,
   },
   button: {
-    backgroundColor: "#2d7ef7",
-    borderRadius: 10,
+    backgroundColor: colors.accent,
+    borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 44,
+    minHeight: 46,
+    marginTop: 2,
   },
   buttonText: {
-    color: "#fff",
-    fontWeight: "600",
+    color: colors.primary,
+    fontWeight: "800",
   },
   link: {
-    color: "#2d7ef7",
-    fontWeight: "600",
+    color: colors.accent,
+    fontWeight: "700",
     textAlign: "center",
   },
   error: {
-    color: "#dc2626",
+    color: colors.danger,
+    fontWeight: "600",
   },
 });
