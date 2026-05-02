@@ -3,12 +3,37 @@ const Equipment = require('../models/Equipment');
 const auth = require('../middleware/auth');
 const router = express.Router();
 
-const sanitizeEquipmentData = (data) => {
-    const allowed = ['name', 'description', 'category', 'dailyRate', 'isAvailable', 'location'];
+const sanitizeEquipmentData = (data = {}) => {
+    // Accept both legacy keys and current API keys.
     const sanitized = {};
-    allowed.forEach(field => {
-        if (data[field] !== undefined) sanitized[field] = data[field];
-    });
+
+    const equipmentName = data.equipmentName ?? data.name;
+    const equipmentDescription = data.equipmentDescription ?? data.description;
+    const rentalPricePerDay = data.rentalPricePerDay ?? data.dailyRate ?? data.rentalPrice;
+    const depositAmount = data.depositAmount ?? data.deposit;
+    const conditionInput = String(data.equipmentCondition ?? data.condition ?? "good").trim().toLowerCase();
+    const conditionAliases = {
+        new: "new",
+        excellent: "excellent",
+        exc: "excellent",
+        good: "good",
+        goo: "good",
+        fair: "fair",
+        fai: "fair"
+    };
+    const equipmentCondition = conditionAliases[conditionInput] || "good";
+
+    if (equipmentName !== undefined) sanitized.equipmentName = equipmentName;
+    if (equipmentDescription !== undefined) sanitized.equipmentDescription = equipmentDescription;
+    if (data.category !== undefined) sanitized.category = data.category;
+    if (equipmentCondition !== undefined) sanitized.equipmentCondition = equipmentCondition;
+    if (rentalPricePerDay !== undefined) sanitized.rentalPricePerDay = rentalPricePerDay;
+    if (depositAmount !== undefined) sanitized.depositAmount = depositAmount;
+    if (data.quantityAvailable !== undefined) sanitized.quantityAvailable = data.quantityAvailable;
+    if (data.quantityTotal !== undefined) sanitized.quantityTotal = data.quantityTotal;
+    if (data.imagePath !== undefined) sanitized.imagePath = data.imagePath;
+    if (data.isAvailable !== undefined) sanitized.isAvailable = data.isAvailable;
+
     return sanitized;
 };
 
@@ -76,7 +101,10 @@ router.post('/', auth, async (req, res) => {
         await equipment.save();
         res.status(201).json({ status: 'success', data: equipment });
     } catch (error) {
-        res.status(400).json({ status: 'error', message: 'Failed to add equipment' });
+        const detailMessage = error?.name === 'ValidationError'
+            ? Object.values(error.errors || {})[0]?.message
+            : '';
+        res.status(400).json({ status: 'error', message: detailMessage || 'Failed to add equipment' });
     }
 });
 
@@ -95,7 +123,10 @@ router.put('/:id', auth, async (req, res) => {
 
         res.json({ status: 'success', data: equipment });
     } catch (error) {
-        res.status(400).json({ status: 'error', message: 'Failed to update equipment' });
+        const detailMessage = error?.name === 'ValidationError'
+            ? Object.values(error.errors || {})[0]?.message
+            : '';
+        res.status(400).json({ status: 'error', message: detailMessage || 'Failed to update equipment' });
     }
 });
 
