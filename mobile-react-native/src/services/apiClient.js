@@ -35,21 +35,29 @@ function contentOrArray(response) {
 }
 
 function equipmentPayload(payload) {
+  const dailyRate = Number(payload.rentalPricePerDay || payload.dailyRate || payload.rentalPrice || 0);
+  const depositAmount = Number(payload.depositAmount || payload.deposit || 0);
+  const quantityAvailable = Number(payload.quantityAvailable || 0);
+  const quantityTotal = Number(payload.quantityTotal || 0);
+
   return {
     name: payload.equipmentName,
     description: payload.equipmentDescription,
     category: payload.category,
-    dailyRate: payload.rentalPricePerDay,
+    dailyRate,
+    rentalPrice: dailyRate,
     isAvailable: payload.isAvailable,
     location: payload.location || "",
+    condition: payload.equipmentCondition,
+    deposit: depositAmount,
 
     equipmentName: payload.equipmentName,
     equipmentDescription: payload.equipmentDescription,
     equipmentCondition: payload.equipmentCondition,
-    rentalPricePerDay: payload.rentalPricePerDay,
-    depositAmount: payload.depositAmount,
-    quantityAvailable: payload.quantityAvailable,
-    quantityTotal: payload.quantityTotal,
+    rentalPricePerDay: dailyRate,
+    depositAmount,
+    quantityAvailable,
+    quantityTotal,
   };
 }
 

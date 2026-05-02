@@ -9,8 +9,12 @@ const sanitizeEquipmentData = (data = {}) => {
 
     const equipmentName = data.equipmentName ?? data.name;
     const equipmentDescription = data.equipmentDescription ?? data.description;
-    const rentalPricePerDay = data.rentalPricePerDay ?? data.dailyRate ?? data.rentalPrice;
-    const depositAmount = data.depositAmount ?? data.deposit;
+    const rentalPricePerDayRaw = data.rentalPricePerDay ?? data.dailyRate ?? data.rentalPrice;
+    const depositAmountRaw = data.depositAmount ?? data.deposit;
+    const rentalPricePerDay = rentalPricePerDayRaw !== undefined ? Number(rentalPricePerDayRaw) : undefined;
+    const depositAmount = depositAmountRaw !== undefined ? Number(depositAmountRaw) : undefined;
+    const quantityAvailable = data.quantityAvailable !== undefined ? Number(data.quantityAvailable) : undefined;
+    const quantityTotal = data.quantityTotal !== undefined ? Number(data.quantityTotal) : undefined;
     const conditionInput = String(data.equipmentCondition ?? data.condition ?? "good").trim().toLowerCase();
     const conditionAliases = {
         new: "new",
@@ -23,15 +27,37 @@ const sanitizeEquipmentData = (data = {}) => {
     };
     const equipmentCondition = conditionAliases[conditionInput] || "good";
 
-    if (equipmentName !== undefined) sanitized.equipmentName = equipmentName;
-    if (equipmentDescription !== undefined) sanitized.equipmentDescription = equipmentDescription;
+    if (equipmentName !== undefined) {
+        // Save both legacy and current key names so either schema variant can persist correctly.
+        sanitized.equipmentName = equipmentName;
+        sanitized.name = equipmentName;
+    }
+    if (equipmentDescription !== undefined) {
+        sanitized.equipmentDescription = equipmentDescription;
+        sanitized.description = equipmentDescription;
+    }
     if (data.category !== undefined) sanitized.category = data.category;
-    if (equipmentCondition !== undefined) sanitized.equipmentCondition = equipmentCondition;
-    if (rentalPricePerDay !== undefined) sanitized.rentalPricePerDay = rentalPricePerDay;
-    if (depositAmount !== undefined) sanitized.depositAmount = depositAmount;
-    if (data.quantityAvailable !== undefined) sanitized.quantityAvailable = data.quantityAvailable;
-    if (data.quantityTotal !== undefined) sanitized.quantityTotal = data.quantityTotal;
+    if (equipmentCondition !== undefined) {
+        sanitized.equipmentCondition = equipmentCondition;
+        sanitized.condition = equipmentCondition;
+    }
+    if (rentalPricePerDay !== undefined && Number.isFinite(rentalPricePerDay)) {
+        sanitized.rentalPricePerDay = rentalPricePerDay;
+        sanitized.dailyRate = rentalPricePerDay;
+        sanitized.rentalPrice = rentalPricePerDay;
+    }
+    if (depositAmount !== undefined && Number.isFinite(depositAmount)) {
+        sanitized.depositAmount = depositAmount;
+        sanitized.deposit = depositAmount;
+    }
+    if (quantityAvailable !== undefined && Number.isFinite(quantityAvailable)) {
+        sanitized.quantityAvailable = quantityAvailable;
+    }
+    if (quantityTotal !== undefined && Number.isFinite(quantityTotal)) {
+        sanitized.quantityTotal = quantityTotal;
+    }
     if (data.imagePath !== undefined) sanitized.imagePath = data.imagePath;
+    if (data.location !== undefined) sanitized.location = data.location;
     if (data.isAvailable !== undefined) sanitized.isAvailable = data.isAvailable;
 
     return sanitized;
@@ -104,7 +130,10 @@ router.post('/', auth, async (req, res) => {
         const detailMessage = error?.name === 'ValidationError'
             ? Object.values(error.errors || {})[0]?.message
             : '';
-        res.status(400).json({ status: 'error', message: detailMessage || 'Failed to add equipment' });
+        res.status(400).json({
+            status: 'error',
+            message: detailMessage || error?.message || 'Failed to add equipment'
+        });
     }
 });
 
@@ -126,7 +155,10 @@ router.put('/:id', auth, async (req, res) => {
         const detailMessage = error?.name === 'ValidationError'
             ? Object.values(error.errors || {})[0]?.message
             : '';
-        res.status(400).json({ status: 'error', message: detailMessage || 'Failed to update equipment' });
+        res.status(400).json({
+            status: 'error',
+            message: detailMessage || error?.message || 'Failed to update equipment'
+        });
     }
 });
 

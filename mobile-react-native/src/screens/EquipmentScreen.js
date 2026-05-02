@@ -16,6 +16,7 @@ import {
   getEquipment,
   updateEquipment,
 } from "../services/apiClient";
+import { colors, layout } from "../styles/theme";
 
 const INITIAL_FORM = {
   equipmentName: "",
@@ -32,6 +33,20 @@ const INITIAL_FORM = {
 
 function getSupplierId(item) {
   return item?.supplier?._id || item?.supplier;
+}
+
+function normalizeCondition(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  const aliases = {
+    new: "new",
+    excellent: "excellent",
+    exc: "excellent",
+    good: "good",
+    goo: "good",
+    fair: "fair",
+    fai: "fair",
+  };
+  return aliases[raw] || "";
 }
 
 export default function EquipmentScreen() {
@@ -105,8 +120,40 @@ export default function EquipmentScreen() {
       return;
     }
 
-    if (!form.equipmentName || !form.category || !form.rentalPricePerDay || !form.depositAmount) {
-      setActionError("Name, category, daily rate and deposit are required");
+    const equipmentName = String(form.equipmentName || "").trim();
+    const category = String(form.category || "").trim();
+    const condition = normalizeCondition(form.equipmentCondition);
+    const dailyRate = Number(form.rentalPricePerDay);
+    const depositAmount = Number(form.depositAmount);
+    const quantityAvailable = Number(form.quantityAvailable || 0);
+    const quantityTotal = Number(form.quantityTotal || 0);
+
+    if (!equipmentName || equipmentName.length < 3) {
+      setActionError("Equipment name must be at least 3 characters");
+      return;
+    }
+    if (!category) {
+      setActionError("Category is required");
+      return;
+    }
+    if (!condition) {
+      setActionError("Condition must be one of: new, excellent, good, fair");
+      return;
+    }
+    if (!Number.isFinite(dailyRate) || dailyRate <= 0) {
+      setActionError("Daily rate must be a positive number");
+      return;
+    }
+    if (!Number.isFinite(depositAmount) || depositAmount < 0) {
+      setActionError("Deposit amount must be 0 or more");
+      return;
+    }
+    if (!Number.isFinite(quantityTotal) || quantityTotal < 1) {
+      setActionError("Quantity total must be at least 1");
+      return;
+    }
+    if (!Number.isFinite(quantityAvailable) || quantityAvailable < 0 || quantityAvailable > quantityTotal) {
+      setActionError("Quantity available must be between 0 and total quantity");
       return;
     }
 
@@ -116,10 +163,13 @@ export default function EquipmentScreen() {
 
       const payload = {
         ...form,
-        rentalPricePerDay: Number(form.rentalPricePerDay),
-        depositAmount: Number(form.depositAmount),
-        quantityAvailable: Number(form.quantityAvailable || 1),
-        quantityTotal: Number(form.quantityTotal || 1),
+        equipmentName,
+        category,
+        equipmentCondition: condition,
+        rentalPricePerDay: dailyRate,
+        depositAmount,
+        quantityAvailable,
+        quantityTotal,
       };
 
       if (editingId) {
@@ -131,7 +181,13 @@ export default function EquipmentScreen() {
       resetForm();
       await loadData();
     } catch (e) {
-      setActionError(e.message || (editingId ? "Failed to update equipment" : "Failed to create equipment"));
+      const fallback = editingId ? "Failed to update equipment" : "Failed to create equipment";
+      const message = e.message || fallback;
+      if (message === "Failed to add equipment" || message === "Failed to create equipment") {
+        setActionError("Failed to add equipment. Please check name/category/condition/rates and confirm this account is a supplier.");
+      } else {
+        setActionError(message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -316,10 +372,10 @@ export default function EquipmentScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: colors.bg,
   },
   headerWrap: {
-    paddingHorizontal: 16,
+    paddingHorizontal: layout.pagePadding,
     paddingTop: 12,
   },
   topRow: {
@@ -330,57 +386,60 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#111827",
+    color: colors.text,
   },
   refreshBtn: {
     marginLeft: "auto",
-    backgroundColor: "#cbd5e1",
+    backgroundColor: colors.surfaceLight,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 8,
   },
   refreshText: {
-    color: "#0f172a",
+    color: colors.text,
     fontWeight: "600",
   },
   list: {
-    paddingHorizontal: 16,
+    paddingHorizontal: layout.pagePadding,
     paddingBottom: 20,
     gap: 10,
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: colors.border,
     marginBottom: 10,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111827",
+    color: colors.text,
     marginBottom: 10,
   },
   itemTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#0f172a",
+    color: colors.text,
     marginBottom: 6,
   },
   label: {
-    color: "#334155",
+    color: colors.text,
     fontWeight: "600",
     marginBottom: 4,
     marginTop: 6,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surfaceLight,
+    color: colors.text,
   },
   textArea: {
     minHeight: 80,
@@ -394,32 +453,32 @@ const styles = StyleSheet.create({
   },
   toggleBtn: {
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: colors.border,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   toggleBtnActive: {
-    backgroundColor: "#dbeafe",
-    borderColor: "#1d4ed8",
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   toggleText: {
-    color: "#334155",
+    color: colors.text,
     fontWeight: "600",
   },
   toggleTextActive: {
-    color: "#1e3a8a",
+    color: colors.primary,
   },
   primaryBtn: {
     marginTop: 12,
-    backgroundColor: "#2563eb",
+    backgroundColor: colors.accent,
     borderRadius: 10,
     minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
   },
   primaryBtnText: {
-    color: "#fff",
+    color: colors.primary,
     fontWeight: "700",
   },
   cancelBtn: {
@@ -429,10 +488,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceLight,
   },
   cancelBtnText: {
-    color: "#334155",
+    color: colors.text,
     fontWeight: "600",
   },
   actionRow: {
@@ -441,29 +501,31 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   smallBtn: {
-    backgroundColor: "#dbeafe",
+    backgroundColor: colors.surfaceLight,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
   },
   deleteBtn: {
-    backgroundColor: "#fee2e2",
+    backgroundColor: "#6b1d1d",
   },
   smallBtnText: {
-    color: "#1e3a8a",
+    color: colors.text,
     fontWeight: "600",
     fontSize: 12,
   },
   meta: {
-    color: "#334155",
+    color: colors.textMuted,
     marginBottom: 4,
   },
   helper: {
-    color: "#475569",
+    color: colors.textMuted,
     marginBottom: 10,
   },
   error: {
-    color: "#dc2626",
+    color: colors.danger,
     marginBottom: 10,
   },
 });
